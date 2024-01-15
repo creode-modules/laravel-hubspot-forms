@@ -1,4 +1,5 @@
 # Laravel HubSpot Forms
+
 A Laravel package that allows you to embed a HubSpot form into your Laravel application using a Blade component
 
 ## Installation
