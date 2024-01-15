@@ -2,8 +2,7 @@
     "name": "creode/laravel-hubspot-forms",
     "description": "This package allows you to embed Hubspot forms in your laravel application using a Blade Component.",
     "keywords": [
-        "laravel",
-        "nova"
+        "laravel"
     ],
     "license": "MIT",
     "require": {
@@ -17,7 +16,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Creode\\LaravelHubspotForms\\ToolServiceProvider"
+                "Creode\\LaravelHubspotForms\\LaravelHubspotFormsServiceProvider"
             ]
         }
     },

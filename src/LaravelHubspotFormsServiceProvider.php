@@ -2,12 +2,11 @@
 
 namespace Creode\LaravelHubspotForms;
 
-use Creode\LaravelHubspotForms\Http\Middleware\Authorize;
 use Creode\LaravelHubspotForms\Http\View\HubspotForm;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
-class ToolServiceProvider extends ServiceProvider
+class LaravelHubspotFormsServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap any application services.
