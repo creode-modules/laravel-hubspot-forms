@@ -6,7 +6,8 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^7.3|^8.0"
+        "php": "^7.3|^8.0",
+        "hubspot/api-client": "^10.3"
     },
     "autoload": {
         "psr-4": {
