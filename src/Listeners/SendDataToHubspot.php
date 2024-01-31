@@ -2,7 +2,7 @@
 
 namespace Creode\LaravelHubspotForms\Listeners;
 
-class SendWishlistDataToHubspot
+class SendDataToHubspot
 {
     /**
      * Create the event listener.
