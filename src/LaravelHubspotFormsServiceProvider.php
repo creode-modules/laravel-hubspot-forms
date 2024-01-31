@@ -26,5 +26,9 @@ class LaravelHubspotFormsServiceProvider extends ServiceProvider
     public function register()
     {
         $this->loadViewsFrom(__DIR__ . '/../resources/components', 'laravel-hubspot-forms');
+
+        $this->publishes([
+            __DIR__.'/../config/laravel-hubspot-forms.php' => config_path('laravel-hubspot-forms.php'),
+        ]);
     }
 }
