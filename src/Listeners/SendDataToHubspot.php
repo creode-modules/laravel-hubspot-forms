@@ -15,19 +15,20 @@ class SendDataToHubspot
     /**
      * Handle the event.
      */
-    public function handle($data): void
+    public function handle($event): void
     {
+        $data = $event->data;
         $hubspot = new \Creode\LaravelHubspotForms\LaravelHubspotAPIService();
 
         $contactId = $hubspot->find('email', $data['email'])
             ->getResults()[0]
             ->getId();
 
-        $hubspot->updateUser($data, $contactId);
+//        $hubspot->updateUser($data, $contactId);
 
         $hubspot->createNote(
             $contactId,
-            $data['wishlistUrl']
+            $data['note']
         );
     }
 }
