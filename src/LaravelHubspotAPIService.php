@@ -96,6 +96,11 @@ class LaravelHubspotAPIService implements SubmissionInterface
 
         $note = $this->hubspot->crm()->objects()->notes()->basicApi()->create($activityProperties);
 
+        return $this->assignNoteToContact($note, $contactId);
+    }
+
+    private function assignNoteToContact($note, $contactId)
+    {
         return $this->hubspot->apiRequest([
             'method' => 'PUT',
             'path' => '/crm/v3/objects/notes/'.$note->getId().'/associations/contact/'.$contactId.'/202',
