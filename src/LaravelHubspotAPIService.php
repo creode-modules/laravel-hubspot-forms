@@ -5,6 +5,7 @@ namespace Creode\LaravelHubspotForms;
 use Carbon\Carbon;
 use Creode\LaravelHubspotForms\Contracts\SubmissionInterface;
 use HubSpot\Client\Crm\Contacts\ApiException;
+use HubSpot\Client\Crm\Contacts\Model\CollectionResponseWithTotalSimplePublicObjectForwardPaging;
 use HubSpot\Client\Crm\Contacts\Model\Error;
 use HubSpot\Client\Crm\Contacts\Model\SimplePublicObject;
 use HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput;
@@ -30,6 +31,10 @@ class LaravelHubspotAPIService implements SubmissionInterface
         $this->hubspot = Factory::createWithAccessToken(config('laravel-hubspot-forms.access_token'));
     }
 
+    /**
+     * @return array Array of owners of the HubSpot account
+     * @throws \Exception
+     */
     private function getOwners()
     {
         $owners = $this->hubspot->crm()->owners()->getAll();
@@ -41,6 +46,11 @@ class LaravelHubspotAPIService implements SubmissionInterface
         return $owners;
     }
 
+    /**
+     * @param array $data Array of user data to be validated
+     * @return void
+     * @throws \Exception
+     */
     private function validate($data)
     {
         if (!$data) {
@@ -58,13 +68,17 @@ class LaravelHubspotAPIService implements SubmissionInterface
         }
     }
 
-    private function setContactFields($user)
+    /**
+     * @param array $userData Array of fields to be set on the contact
+     * @return array Properties array to be used in the API request
+     */
+    private function setContactFields($userData)
     {
-        $fields = array_keys($user);
+        $fields = array_keys($userData);
 
         $properties = [];
         foreach ($fields as $field) {
-            $properties[$field] = $user[$field];
+            $properties[$field] = $userData[$field];
         }
 
         return $properties;
@@ -94,7 +108,12 @@ class LaravelHubspotAPIService implements SubmissionInterface
             'hubspot_owner_id' => $ownerId,
         ]);
 
+        // Maybe try catch on create note.
         $note = $this->hubspot->crm()->objects()->notes()->basicApi()->create($activityProperties);
+
+        if(!$note){
+            throw new \Exception('Note not created');
+        }
 
         return $this->assignNoteToContact($note, $contactId);
     }
@@ -108,23 +127,40 @@ class LaravelHubspotAPIService implements SubmissionInterface
     }
 
     /**
-     * @param array $user Required fields are email, firstname, lastname
+     * @param array $userData Array of user data to be updated
      * @param int $contactId  The Hubspot ID of the contact to be updated
      * @return Error|SimplePublicObject
      * @throws ApiException
      */
-    public function updateUser($user, $contactId)
+    public function updateUser($userData, $contactId)
     {
-        $this->validate($user);
+        $this->validate($userData);
 
         $contactProperties = new SimplePublicObjectInput();
 
-        $contactProperties->setProperties($this->setContactFields($user));
+        $contactProperties->setProperties($this->setContactFields($userData));
 
         return $this->hubspot->crm()->contacts()->basicApi()->update($contactId, $contactProperties);
     }
 
-    public function find($field, $email)
+    /**
+     * @param array $userData Array of user dat to be added
+     * @return Error|SimplePublicObject
+     */
+    public function createContact($userData)
+    {
+        $contactInput = new \HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput();
+        $contactInput->setProperties($this->setContactFields($userData));
+
+        return $this->hubspot->crm()->contacts()->basicApi()->create($contactInput);
+    }
+
+    /**
+     * @param string $field The Hubspot field to search by
+     * @param string $searchTerm The value to search for
+     * @return CollectionResponseWithTotalSimplePublicObjectForwardPaging|Error
+     */
+    public function find($field, $searchTerm)
     {
         if(!$field){
             throw new \Exception('No field provided');
@@ -134,7 +170,7 @@ class LaravelHubspotAPIService implements SubmissionInterface
         $filter
             ->setOperator('EQ')
             ->setPropertyName($field)
-            ->setValue($email);
+            ->setValue($searchTerm);
 
         $filterGroup = new FilterGroup();
         $filterGroup->setFilters([$filter]);
