@@ -4,7 +4,8 @@ namespace Creode\LaravelHubspotForms\Contracts;
 
 interface SubmissionInterface
 {
-    public function updateUser($user, $contactId);
-    public function createNote($contactId, $noteBody);
-    public function find($field, $email);
+    public function updateContact(array $user, int $contactId);
+    public function createNote(int $contactId, string $noteBody);
+    public function createContact(array $userData);
+    public function find(string $field, string $data);
 }
