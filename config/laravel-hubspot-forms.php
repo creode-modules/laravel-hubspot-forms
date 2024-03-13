@@ -31,5 +31,6 @@ return [
         'email',
         'firstname',
         'lastname',
+        'company',
     ],
 ];
