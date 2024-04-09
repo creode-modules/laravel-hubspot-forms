@@ -197,7 +197,7 @@ class LaravelHubspotAPIService implements SubmissionInterface
     {
         $contact = $this->find($key, $data);
 
-        if(!$contact){
+        if(!$contact->getResults()){
             throw new HubspotContactNotFoundException('Contact not found');
         }
 
