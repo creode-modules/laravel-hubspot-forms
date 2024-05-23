@@ -3,6 +3,7 @@
 namespace Creode\LaravelHubspotForms;
 
 use Carbon\Carbon;
+use Creode\LaravelHubspotForms\Exceptions\ContactAlreadyExistsException;
 use Creode\LaravelHubspotForms\Exceptions\FieldIsEmptyException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotContactIdNotProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotContactNotFoundException;
@@ -153,7 +154,7 @@ class LaravelHubspotAPIService implements SubmissionInterface
     }
 
     /**
-     * @param array $userData Array of user dat to be added
+     * @param  array  $userData  Array of user dat to be added
      * @return Error|SimplePublicObject
      */
     public function createContact(array $userData)
