@@ -159,12 +159,6 @@ class LaravelHubspotAPIService implements SubmissionInterface
      */
     public function createContact(array $userData)
     {
-        $user = $this->findContactByKey('email', $userData['email']);
-
-        if($user){
-            throw new ContactAlreadyExistsException('Contact already exists');
-        }
-
         $contactInput = new SimplePublicObjectInput();
         $contactInput->setProperties($this->setContactFields($userData));
 
