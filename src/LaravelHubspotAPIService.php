@@ -199,16 +199,29 @@ class LaravelHubspotAPIService implements SubmissionInterface
 
         return $this->hubspot->crm()->contacts()->searchApi()->doSearch($searchRequest);
     }
-
-
-    public function findContactByKey(string $key, string $data)
+    
+    /**
+     * @param string $key The key to search by
+     * @param string $data The value to search for
+     * @return array
+     */
+    public function findContactByKey(string $key, string $data) : array
     {
         $contact = $this->find($key, $data);
 
-        if(!$contact->getResults()){
+        return $contact->getResults();
+    }
+
+    /**
+     * @param array $contactResults
+     * @return int|HubspotContactNotFoundException
+     */
+    public function getContactId(array $contactResults) : int|HubspotContactNotFoundException
+    {
+        if(!$contactResults){
             throw new HubspotContactNotFoundException('Contact not found');
         }
 
-        return $contact->getResults()[0]->getId();
+        return $contactResults[0]->getId();
     }
 }
