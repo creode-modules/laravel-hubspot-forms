@@ -33,4 +33,13 @@ return [
         'lastname',
         'company',
     ],
+    /*
+    |--------------------------------------------------------------------------
+    | HubSpot Primary Contact Owner ID
+    |--------------------------------------------------------------------------
+    | This is the ID of the primary contact owner in HubSpot to assign to all
+    | newly created contacts.
+    |
+    */
+    'hubspot_primary_contact_owner_id' => env('HUBSPOT_PRIMARY_CONTACT_OWNER_ID', 230928667),
 ];
