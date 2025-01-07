@@ -4,18 +4,15 @@ namespace Creode\LaravelHubspotForms;
 
 use Carbon\Carbon;
 use Creode\LaravelHubspotForms\Exceptions\ContactAlreadyExistsException;
-use Creode\LaravelHubspotForms\Exceptions\FieldIsEmptyException;
+use Creode\LaravelHubspotForms\Exceptions\CompanyAlreadyExistsException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotContactIdNotProvidedException;
-use Creode\LaravelHubspotForms\Exceptions\HubspotContactNotFoundException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotNoteBodyNotProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\MissingRequiredFieldException;
-use Creode\LaravelHubspotForms\Exceptions\NoFieldKeyProvidedException;
 use HubSpot\Factory;
 use Creode\LaravelHubspotForms\Exceptions\NoDataProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotOwnersNotFoundException;
 use Creode\LaravelHubspotForms\Contracts\SubmissionInterface;
 use HubSpot\Client\Crm\Contacts\ApiException;
-use HubSpot\Client\Crm\Contacts\Model\CollectionResponseWithTotalSimplePublicObjectForwardPaging;
 use HubSpot\Client\Crm\Contacts\Model\Error;
 use HubSpot\Client\Crm\Contacts\Model\SimplePublicObject;
 use HubSpot\Client\Crm\Objects\Notes\Model\SimplePublicObjectInputForCreate;
@@ -136,7 +133,7 @@ class LaravelHubspotAPIService implements SubmissionInterface
     public function assignOwnerToContact(int $contactId)
     {
         try{
-            $primaryContactOwner = $this->getPrimaryContactOwner();
+            $primaryContactOwner = $this->getPrimaryContactOwnerId();
             return $this->hubspot->apiRequest([
                 'method' => 'PATCH',
                 'path' => '/crm/v3/objects/contacts/'.$contactId,
