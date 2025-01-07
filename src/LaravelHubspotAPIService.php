@@ -49,7 +49,6 @@ class LaravelHubspotAPIService implements SubmissionInterface
         return $owners;
     }
 
-
     private function getFirstOwnerId()
     {
         return $this->getOwners()[0]['id'];
@@ -58,6 +57,11 @@ class LaravelHubspotAPIService implements SubmissionInterface
     private function getContactFields()
     {
         return config('laravel-hubspot-forms.hubspot_contact_fields');
+    }
+
+    public function getPrimaryContactOwner()
+    {
+        return $this->hubspot->crm()->owners()->ownersApi()->getById(config('laravel-hubspot-forms.hubspot_primary_contact_owner_id'));
     }
 
     /**
@@ -75,10 +79,6 @@ class LaravelHubspotAPIService implements SubmissionInterface
             if (!isset($data[$field])) {
                 throw new MissingRequiredFieldException('Missing required field: '.$field);
             }
-
-            if (!$data[$field]) {
-                throw new FieldIsEmptyException('Field '.$field.' is empty.');
-            }
         }
     }
 
@@ -95,6 +95,32 @@ class LaravelHubspotAPIService implements SubmissionInterface
         }
 
         return $properties;
+    }
+
+    private function assignNoteToContact(int $noteId, int $contactId)
+    {
+        try{
+            return $this->hubspot->apiRequest([
+                'method' => 'PUT',
+                'path' => '/crm/v3/objects/notes/'.$noteId.'/associations/contact/'.$contactId.'/202',
+            ]);
+        } catch (\Exception $e) {
+            throw new \Exception($e);
+        }
+    }
+
+    private function assignOwnerToContact(array $userData, int $contactId)
+    {
+        try{
+            $primaryContactOwner = $this->getPrimaryContactOwner();
+            return $this->hubspot->apiRequest([
+                'method' => 'PATCH',
+                'path' => '/crm/v3/objects/contacts/'.$contactId,
+                'body' => ['properties' => ['hubspot_owner_id' => $primaryContactOwner['id']]],
+            ]);
+        } catch (\Exception $e) {
+            throw new \Exception($e);
+        }
     }
 
     /**
@@ -124,16 +150,27 @@ class LaravelHubspotAPIService implements SubmissionInterface
         return $this->assignNoteToContact($note->getId(), $contactId);
     }
 
-    private function assignNoteToContact(int $noteId, int $contactId)
+    /**
+     * @param  array  $userData  Array of user dat to be added
+     * @return Error|SimplePublicObject
+     * @throws ContactAlreadyExistsException|ApiException
+     */
+    public function createContact(array $userData)
     {
-        try{
-            return $this->hubspot->apiRequest([
-                'method' => 'PUT',
-                'path' => '/crm/v3/objects/notes/'.$noteId.'/associations/contact/'.$contactId.'/202',
-            ]);
-        } catch (\Exception $e) {
-            throw new \Exception($e);
+        $user = $this->findContactByKey('email', $userData['email']);
+
+        if($user){
+            throw new ContactAlreadyExistsException('Contact already exists in HubSpot.');
         }
+
+        $contactInput = new SimplePublicObjectInput();
+        $contactInput->setProperties($this->setContactFields($userData));
+
+        $contact = $this->hubspot->crm()->contacts()->basicApi()->create($contactInput);
+
+        // Create new ContactCouldNotBeCreated exception
+
+        return $this->assignOwnerToContact($userData, $contact->getId());
     }
 
     /**
@@ -151,25 +188,6 @@ class LaravelHubspotAPIService implements SubmissionInterface
         $contactProperties->setProperties($this->setContactFields($userData));
 
         return $this->hubspot->crm()->contacts()->basicApi()->update($contactId, $contactProperties);
-    }
-
-    /**
-     * @param  array  $userData  Array of user dat to be added
-     * @return Error|SimplePublicObject
-     * @throws ContactAlreadyExistsException|ApiException
-     */
-    public function createContact(array $userData)
-    {
-        $user = $this->findContactByKey('email', $userData['email']);
-
-        if($user){
-            throw new ContactAlreadyExistsException('Contact already exists in HubSpot.');
-        }
-
-        $contactInput = new SimplePublicObjectInput();
-        $contactInput->setProperties($this->setContactFields($userData));
-
-        return $this->hubspot->crm()->contacts()->basicApi()->create($contactInput);
     }
 
     /**
@@ -199,7 +217,7 @@ class LaravelHubspotAPIService implements SubmissionInterface
 
         return $this->hubspot->crm()->contacts()->searchApi()->doSearch($searchRequest);
     }
-    
+
     /**
      * @param string $key The key to search by
      * @param string $data The value to search for
