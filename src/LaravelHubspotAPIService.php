@@ -4,15 +4,18 @@ namespace Creode\LaravelHubspotForms;
 
 use Carbon\Carbon;
 use Creode\LaravelHubspotForms\Exceptions\ContactAlreadyExistsException;
-use Creode\LaravelHubspotForms\Exceptions\CompanyAlreadyExistsException;
+use Creode\LaravelHubspotForms\Exceptions\FieldIsEmptyException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotContactIdNotProvidedException;
+use Creode\LaravelHubspotForms\Exceptions\HubspotContactNotFoundException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotNoteBodyNotProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\MissingRequiredFieldException;
+use Creode\LaravelHubspotForms\Exceptions\NoFieldKeyProvidedException;
 use HubSpot\Factory;
 use Creode\LaravelHubspotForms\Exceptions\NoDataProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotOwnersNotFoundException;
 use Creode\LaravelHubspotForms\Contracts\SubmissionInterface;
 use HubSpot\Client\Crm\Contacts\ApiException;
+use HubSpot\Client\Crm\Contacts\Model\CollectionResponseWithTotalSimplePublicObjectForwardPaging;
 use HubSpot\Client\Crm\Contacts\Model\Error;
 use HubSpot\Client\Crm\Contacts\Model\SimplePublicObject;
 use HubSpot\Client\Crm\Objects\Notes\Model\SimplePublicObjectInputForCreate;
@@ -158,10 +161,10 @@ class LaravelHubspotAPIService implements SubmissionInterface
 
     public function createCompany(array $companyData)
     {
-        // Seatch for Company by domain
-        $company = $this->findCompanyByKey('domain', $companyData['domain']);
+        // Search for Company by domain
+        $companies = $this->findCompanyByKey('domain', $companyData['domain']);
 
-        if( $company['id'] ){
+        if( $companies ){
             throw new CompanyAlreadyExistsException('Company already exists.');
         }
 
@@ -205,9 +208,9 @@ class LaravelHubspotAPIService implements SubmissionInterface
      */
     public function createContact(array $userData)
     {
-        $contact = $this->findContactByKey('email', $userData['email'], 'contacts');
+        $contacts = $this->findContactByKey('email', $userData['email']);
 
-        if($contact['id']){
+        if( $contacts ){
             throw new ContactAlreadyExistsException('Contact already exists in HubSpot.');
         }
 
@@ -239,18 +242,65 @@ class LaravelHubspotAPIService implements SubmissionInterface
      * @param string $data The value to search for
      * @return SimplePublicObjectWithAssociations
      */
-    public function findContactByKey(string $key, string $data) : SimplePublicObjectWithAssociations
+    public function getContactByKey(string $key, string $data) : SimplePublicObjectWithAssociations
     {
         return $this->hubspot->crm()->contacts()->basicApi()->getById($data, null, null, null, false, $key);
     }
 
     /**
-     * @param string $key The key to search by
+     * @param string $field The Hubspot field to search by
      * @param string $data The value to search for
-     * @return SimplePublicCompaniesObjectWithAssociations
+     * @return CollectionResponseWithTotalSimplePublicObjectForwardPaging|Error
      */
-    public function findCompanyByKey(string $key, string $data) : SimplePublicCompaniesObjectWithAssociations
+    public function findContactByKey(string $field, string $data)
     {
-        return $this->hubspot->crm()->companies()->basicApi()->getById($data, null, null, null, false, $key);
+        if(!$field){
+            throw new NoFieldKeyProvidedException('No field key provided');
+        }
+
+        $filter = new \HubSpot\Client\Crm\Contacts\Model\Filter();
+        $filter
+            ->setOperator('EQ')
+            ->setPropertyName($field)
+            ->setValue($data);
+
+        $filterGroup = new \HubSpot\Client\Crm\Contacts\Model\FilterGroup();
+        $filterGroup->setFilters([$filter]);
+
+        $searchRequest = new \HubSpot\Client\Crm\Contacts\Model\PublicObjectSearchRequest();
+        $searchRequest->setFilterGroups([$filterGroup]);
+
+        $searchRequest->setProperties($this->getContactFields());
+
+        $contacts = $this->hubspot->crm()->contacts()->searchApi()->doSearch($searchRequest);
+
+        return $contacts->getResults();
+    }
+
+    /**
+     * @param string $field The Hubspot field to search by
+     * @param string $data The value to search for
+     * @return CollectionResponseWithTotalSimplePublicObjectForwardPaging|Error
+     */
+    public function findCompanyByKey(string $field, string $data)
+    {
+        if(!$field){
+            throw new NoFieldKeyProvidedException('No field key provided');
+        }
+
+        $filter = new \HubSpot\Client\Crm\Companies\Model\Filter();
+        $filter
+            ->setOperator('EQ')
+            ->setPropertyName($field)
+            ->setValue($data);
+
+        $filterGroup = new \HubSpot\Client\Crm\Companies\Model\FilterGroup();
+        $filterGroup->setFilters([$filter]);
+
+        $searchRequest = new \HubSpot\Client\Crm\Companies\Model\PublicObjectSearchRequest();
+        $searchRequest->setFilterGroups([$filterGroup]);
+
+        $compaines = $this->hubspot->crm()->companies()->searchApi()->doSearch($searchRequest);
+        return $compaines->getResults();
     }
 }
