@@ -3,10 +3,9 @@
 namespace Creode\LaravelHubspotForms;
 
 use Carbon\Carbon;
+use Creode\LaravelHubspotForms\Exceptions\CompanyAlreadyExistsException;
 use Creode\LaravelHubspotForms\Exceptions\ContactAlreadyExistsException;
-use Creode\LaravelHubspotForms\Exceptions\FieldIsEmptyException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotContactIdNotProvidedException;
-use Creode\LaravelHubspotForms\Exceptions\HubspotContactNotFoundException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotNoteBodyNotProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\MissingRequiredFieldException;
 use Creode\LaravelHubspotForms\Exceptions\NoFieldKeyProvidedException;
@@ -15,12 +14,10 @@ use Creode\LaravelHubspotForms\Exceptions\NoDataProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotOwnersNotFoundException;
 use Creode\LaravelHubspotForms\Contracts\SubmissionInterface;
 use HubSpot\Client\Crm\Contacts\ApiException;
-use HubSpot\Client\Crm\Contacts\Model\CollectionResponseWithTotalSimplePublicObjectForwardPaging;
 use HubSpot\Client\Crm\Contacts\Model\Error;
 use HubSpot\Client\Crm\Contacts\Model\SimplePublicObject;
 use HubSpot\Client\Crm\Objects\Notes\Model\SimplePublicObjectInputForCreate;
 use HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectWithAssociations;
-use HubSpot\Client\Crm\Companies\Model\SimplePublicObjectWithAssociations as SimplePublicCompaniesObjectWithAssociations;
 
 class LaravelHubspotAPIService implements SubmissionInterface
 {
@@ -250,7 +247,7 @@ class LaravelHubspotAPIService implements SubmissionInterface
     /**
      * @param string $field The Hubspot field to search by
      * @param string $data The value to search for
-     * @return CollectionResponseWithTotalSimplePublicObjectForwardPaging|Error
+     * @return SimplePublicObject[]
      */
     public function findContactByKey(string $field, string $data)
     {
@@ -280,7 +277,7 @@ class LaravelHubspotAPIService implements SubmissionInterface
     /**
      * @param string $field The Hubspot field to search by
      * @param string $data The value to search for
-     * @return CollectionResponseWithTotalSimplePublicObjectForwardPaging|Error
+     * @return \HubSpot\Client\Crm\Companies\Model\SimplePublicObject[]
      */
     public function findCompanyByKey(string $field, string $data)
     {
