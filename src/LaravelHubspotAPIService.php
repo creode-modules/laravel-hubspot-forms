@@ -18,11 +18,9 @@ use HubSpot\Client\Crm\Contacts\ApiException;
 use HubSpot\Client\Crm\Contacts\Model\CollectionResponseWithTotalSimplePublicObjectForwardPaging;
 use HubSpot\Client\Crm\Contacts\Model\Error;
 use HubSpot\Client\Crm\Contacts\Model\SimplePublicObject;
-use HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput;
-use HubSpot\Client\Crm\Contacts\Model\Filter;
-use HubSpot\Client\Crm\Contacts\Model\FilterGroup;
-use HubSpot\Client\Crm\Contacts\Model\PublicObjectSearchRequest;
 use HubSpot\Client\Crm\Objects\Notes\Model\SimplePublicObjectInputForCreate;
+use HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectWithAssociations;
+use HubSpot\Client\Crm\Companies\Model\SimplePublicObjectWithAssociations as SimplePublicCompaniesObjectWithAssociations;
 
 class LaravelHubspotAPIService implements SubmissionInterface
 {
@@ -64,9 +62,15 @@ class LaravelHubspotAPIService implements SubmissionInterface
         return config('laravel-hubspot-forms.hubspot_company_fields');
     }
 
-    public function getPrimaryContactOwner()
+    public function getPrimaryContactOwnerId()
     {
         return $this->hubspot->crm()->owners()->ownersApi()->getById(config('laravel-hubspot-forms.hubspot_primary_contact_owner_id'));
+    }
+
+    public function getContactOwnerId(int $contactId)
+    {
+        $contact = $this->hubspot->crm()->contacts()->basicApi()->getById($contactId, 'hubspot_owner_id');
+        return $contact['properties']['hubspot_owner_id'];
     }
 
     /**
@@ -102,6 +106,21 @@ class LaravelHubspotAPIService implements SubmissionInterface
         return $properties;
     }
 
+    /**
+     * @param array $userData Array of fields to be set on the contact
+     * @return array Properties array to be used in the API request
+     */
+    private function setCompanyFields(array $userData)
+    {
+        $properties = [];
+
+        foreach ($this->getCompanyFields() as $field) {
+            $properties[$field] = $userData[$field];
+        }
+
+        return $properties;
+    }
+
     private function assignNoteToContact(int $noteId, int $contactId)
     {
         try{
@@ -114,10 +133,10 @@ class LaravelHubspotAPIService implements SubmissionInterface
         }
     }
 
-    private function assignOwnerToContact(array $userData, int $contactId)
+    public function assignOwnerToContact(int $contactId)
     {
         try{
-            $primaryContactOwner = $this->getPrimaryContactOwner();
+            $primaryContactOwner = $this->getPrimaryContactOwnerId();
             return $this->hubspot->apiRequest([
                 'method' => 'PATCH',
                 'path' => '/crm/v3/objects/contacts/'.$contactId,
@@ -138,6 +157,21 @@ class LaravelHubspotAPIService implements SubmissionInterface
         } catch (\Exception $e) {
             throw new \Exception($e);
         }
+    }
+
+    public function createCompany(array $companyData)
+    {
+        // Search for Company by domain
+        $companies = $this->findCompanyByKey('domain', $companyData['domain']);
+
+        if( $companies ){
+            throw new CompanyAlreadyExistsException('Company already exists.');
+        }
+
+        $companyInput = new \HubSpot\Client\Crm\Companies\Model\SimplePublicObjectInput();
+        $companyInput->setProperties($this->setCompanyFields($companyData));
+
+        return $this->hubspot->crm()->companies()->basicApi()->create($companyInput);
     }
 
     /**
@@ -168,44 +202,22 @@ class LaravelHubspotAPIService implements SubmissionInterface
     }
 
     /**
-     * @param array $companyData Array of data used to create a company in HubSpot
-     */
-    public function createCompany(array $companyData)
-    {
-        // Seatch for Company by domain
-        $companies = $this->findCompanyByKey('domain', $companyData['domain']);
-
-        if( count($companies) >= 1 ){
-            throw new CompanyAlreadyExistsException('Company already exists.');
-        }
-
-        $companyInput = new \HubSpot\Client\Crm\Companies\Model\SimplePublicObjectInput();
-        $companyInput->setProperties($this->setCompanyFields($companyData));
-
-        return $this->hubspot->crm()->companies()->basicApi()->create($companyInput);
-    }
-
-    /**
-     * @param  array  $userData  Array of user data to be added
+     * @param  array  $userData  Array of user dat to be added
      * @return Error|SimplePublicObject
      * @throws ContactAlreadyExistsException|ApiException
      */
     public function createContact(array $userData)
     {
-        $user = $this->findContactByKey('email', $userData['email']);
+        $contacts = $this->findContactByKey('email', $userData['email']);
 
-        if($user){
+        if( $contacts ){
             throw new ContactAlreadyExistsException('Contact already exists in HubSpot.');
         }
 
-        $contactInput = new SimplePublicObjectInput();
+        $contactInput = new \HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput();
         $contactInput->setProperties($this->setContactFields($userData));
 
-        $contact = $this->hubspot->crm()->contacts()->basicApi()->create($contactInput);
-
-        // Create new ContactCouldNotBeCreated exception
-
-        return $this->assignOwnerToContact($userData, $contact->getId());
+        return $this->hubspot->crm()->contacts()->basicApi()->create($contactInput);
     }
 
     /**
@@ -218,19 +230,29 @@ class LaravelHubspotAPIService implements SubmissionInterface
     {
         $this->validate($userData);
 
-        $contactProperties = new SimplePublicObjectInput();
+        $contactProperties = new \HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput();
 
         $contactProperties->setProperties($this->setContactFields($userData));
 
         return $this->hubspot->crm()->contacts()->basicApi()->update($contactId, $contactProperties);
     }
 
-/**
+    /**
+     * @param string $key The key to search by
+     * @param string $data The value to search for
+     * @return SimplePublicObjectWithAssociations
+     */
+    public function getContactByKey(string $key, string $data) : SimplePublicObjectWithAssociations
+    {
+        return $this->hubspot->crm()->contacts()->basicApi()->getById($data, null, null, null, false, $key);
+    }
+
+    /**
      * @param string $field The Hubspot field to search by
      * @param string $data The value to search for
      * @return CollectionResponseWithTotalSimplePublicObjectForwardPaging|Error
      */
-    public function findContact(string $field, string $data)
+    public function findContactByKey(string $field, string $data)
     {
         if(!$field){
             throw new NoFieldKeyProvidedException('No field key provided');
@@ -250,7 +272,9 @@ class LaravelHubspotAPIService implements SubmissionInterface
 
         $searchRequest->setProperties($this->getContactFields());
 
-        return $this->hubspot->crm()->contacts()->searchApi()->doSearch($searchRequest);
+        $contacts = $this->hubspot->crm()->contacts()->searchApi()->doSearch($searchRequest);
+
+        return $contacts->getResults();
     }
 
     /**
@@ -258,7 +282,7 @@ class LaravelHubspotAPIService implements SubmissionInterface
      * @param string $data The value to search for
      * @return CollectionResponseWithTotalSimplePublicObjectForwardPaging|Error
      */
-    public function findCompany(string $field, string $data)
+    public function findCompanyByKey(string $field, string $data)
     {
         if(!$field){
             throw new NoFieldKeyProvidedException('No field key provided');
@@ -276,43 +300,7 @@ class LaravelHubspotAPIService implements SubmissionInterface
         $searchRequest = new \HubSpot\Client\Crm\Companies\Model\PublicObjectSearchRequest();
         $searchRequest->setFilterGroups([$filterGroup]);
 
-        return $this->hubspot->crm()->companies()->searchApi()->doSearch($searchRequest);
-    }
-
-    /**
-     * @param string $key The key to search by
-     * @param string $data The value to search for
-     * @return array
-     */
-    public function findContactByKey(string $key, string $data) : array
-    {
-        $contact = $this->findContact($key, $data);
-
-        return $contact->getResults();
-    }
-
-    /**
-     * @param string $key The key to search by
-     * @param string $data The value to search for
-     * @return array
-     */
-    public function findCompanyByKey(string $key, string $data) : array
-    {
-        $contact = $this->findCompany($key, $data);
-
-        return $contact->getResults();
-    }
-
-    /**
-     * @param array $contactResults
-     * @return int|HubspotContactNotFoundException
-     */
-    public function getContactId(array $contactResults) : int|HubspotContactNotFoundException
-    {
-        if(!$contactResults){
-            throw new HubspotContactNotFoundException('Contact not found');
-        }
-
-        return $contactResults[0]->getId();
+        $compaines = $this->hubspot->crm()->companies()->searchApi()->doSearch($searchRequest);
+        return $compaines->getResults();
     }
 }
