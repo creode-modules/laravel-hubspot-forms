@@ -144,12 +144,12 @@ class LaravelHubspotAPIService implements SubmissionInterface
         }
     }
 
-    public function assignCompanyToContact(int $companyId, int $contactId)
+    public function assignContactToCompany(int $companyId, int $contactId)
     {
         try{
             return $this->hubspot->apiRequest([
                 'method' => 'PUT',
-                'path' => '/crm/v3/objects/companies/'.$companyId.'/associations/contact/'.$contactId.'/280',
+                'path' => '/crm/v3/objects/contacts/'.$contactId.'/associations/company/'.$companyId.'/279',
             ]);
         } catch (\Exception $e) {
             throw new \Exception($e);
