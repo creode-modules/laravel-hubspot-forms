@@ -31,14 +31,15 @@ return [
         'email',
         'firstname',
         'lastname',
-        'company'
+        'company',
+        'newsletter_sign_up'
     ],
     /*
     |--------------------------------------------------------------------------
     | HubSpot Company Fields
     |--------------------------------------------------------------------------
     | These are the fields that are required to create or update a company
-    | using the HubSpot API
+    | using the HubSpot API. Either the 'name' or 'domain' field is required.
     |
     */
     'hubspot_company_fields' => [
@@ -47,11 +48,20 @@ return [
     ],
     /*
     |--------------------------------------------------------------------------
+    | Create HubSpot Company Using This Field
+    |--------------------------------------------------------------------------
+    | This is the field that will be used to create a new company in HubSpot.
+    | This can be either 'name' or 'domain'. 
+    |
+    */
+    'create_hubspot_company_using' => env('CREATE_HUBSPOT_COMPANY_USING', 'name'),
+    /*
+    |--------------------------------------------------------------------------
     | HubSpot Primary Contact Owner ID
     |--------------------------------------------------------------------------
     | This is the ID of the primary contact owner in HubSpot to assign to all
     | newly created contacts.
     |
     */
-    'hubspot_primary_contact_owner_id' => env('HUBSPOT_PRIMARY_CONTACT_OWNER_ID', "230928667"),
+    'hubspot_primary_contact_owner_id' => env('HUBSPOT_PRIMARY_CONTACT_OWNER_ID', '230928667'),
 ];

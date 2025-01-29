@@ -3,13 +3,13 @@
 namespace Creode\LaravelHubspotForms;
 
 use Carbon\Carbon;
+use HubSpot\Factory;
 use Creode\LaravelHubspotForms\Exceptions\CompanyAlreadyExistsException;
 use Creode\LaravelHubspotForms\Exceptions\ContactAlreadyExistsException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotContactIdNotProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotNoteBodyNotProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\MissingRequiredFieldException;
 use Creode\LaravelHubspotForms\Exceptions\NoFieldKeyProvidedException;
-use HubSpot\Factory;
 use Creode\LaravelHubspotForms\Exceptions\NoDataProvidedException;
 use Creode\LaravelHubspotForms\Exceptions\HubspotOwnersNotFoundException;
 use Creode\LaravelHubspotForms\Contracts\SubmissionInterface;
@@ -158,8 +158,10 @@ class LaravelHubspotAPIService implements SubmissionInterface
 
     public function createCompany(array $companyData)
     {
-        // Search for Company by domain
-        $companies = $this->findCompanyByKey('domain', $companyData['domain']);
+        $field = config('laravel-hubspot-forms.create_hubspot_company_using');
+
+        // Search for Company by field. This is set in config (default is 'name' field)
+        $companies = $this->findCompanyByKey($field, $companyData[$field]);
 
         if( $companies ){
             throw new CompanyAlreadyExistsException('Company already exists.');
