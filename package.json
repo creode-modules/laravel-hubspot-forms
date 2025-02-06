@@ -1,0 +1,16 @@
+{
+  "name": "laravel-hubspot-forms",
+  "version": "1.0.0",
+  "description": "A Laravel package that allows you to embed a HubSpot form into your Laravel application using a Blade component",
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs --outDir=build/docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "vite": "^4.0.0",
+    "vitepress": "^1.6.3"
+  },
+  "author": "",
+  "license": "ISC"
+}
